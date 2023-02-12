@@ -1,0 +1,11 @@
+/* 
+  Localizable.strings
+  The Movie App
+
+  Created by Serhii Striuk on 12.02.2023.
+  
+*/
+
+"app_title" = "The Movie App";
+"top10" = "Top 250 Movies";
+"character_occurrence" = "Сharacter %@ occurs %@ times";

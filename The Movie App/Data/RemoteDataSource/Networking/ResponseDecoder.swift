@@ -24,13 +24,13 @@ class JSONResponseDecoder: ResponseDecoder {
 
 class RawDataResponseDecoder: ResponseDecoder {
     
-    public init() { }
-    
     enum CodingKeys: String, CodingKey {
         case `default` = ""
     }
     
-    public func decode<T: Decodable>(_ data: Data) throws -> T {
+    init() { }
+    
+    func decode<T: Decodable>(_ data: Data) throws -> T {
         if T.self is Data.Type, let data = data as? T {
             return data
         } else {

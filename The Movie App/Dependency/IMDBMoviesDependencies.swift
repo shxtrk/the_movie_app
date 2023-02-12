@@ -16,10 +16,24 @@ final class IMDBMoviesDependencies {
 }
 
 extension IMDBMoviesDependencies: MoviesCoordinatorDependencies {
-    func movieListViewController() -> UIViewController {
-        let moviesRepository = MoviesRepository(remoteDataSource: remoteDataSource)
+    
+    func movieListViewController(with router: MoviesRouter) -> MoviesListViewController {
+        let moviesRepository = MoviesRepository(remoteDataSource: remoteDataSource,
+                                                localDataSource: MoviesPersistentStorage())
+        let imagesRepository = ImagesRepository(remoteDataSource: remoteDataSource)
         let topMoviesInteraction = TopMoviesInteractor(moviesProvider: moviesRepository)
-        let movieListViewModel = IMDBMovieListViewModel(topMoviesInteraction: topMoviesInteraction)
-        return MoviesListViewController.create(with: movieListViewModel)
+        let searchMoviesInteraction = SearchMoviesInteractor(moviesProvider: moviesRepository)
+        let movieListViewModel = IMDBMovieListViewModel(topMoviesInteraction: topMoviesInteraction,
+                                                        searchMoviesInteraction: searchMoviesInteraction,
+                                                        moviesRouter: router)
+        return MoviesListViewController.create(with: movieListViewModel,
+                                               imagesProvider: imagesRepository)
+    }
+    
+    func movieDetailsViewController(for movie: Movie) -> MovieDetailsViewController {
+        let imagesRepository = ImagesRepository(remoteDataSource: remoteDataSource)
+        let movieDetailsViewModel = IMDBMovieDetailsViewModel(movie: movie)
+        return MovieDetailsViewController.create(with: movieDetailsViewModel,
+                                                 imagesProvider: imagesRepository)
     }
 }

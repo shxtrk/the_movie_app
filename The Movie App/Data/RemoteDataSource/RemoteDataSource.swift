@@ -9,5 +9,5 @@ import Foundation
 
 protocol RemoteDataSource {
     func request<T: Decodable, E: Endpoint>(with endpoint: E,
-                                            completion: @escaping (Result<T, DataTransferError>) -> Void) -> Cancellable? where E.Response == T
+                                            completion: @escaping (Result<T, NetworkError>) -> Void) -> Cancellable? where E.Response == T
 }

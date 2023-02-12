@@ -18,7 +18,8 @@ struct Movie: Identifiable, Decodable {
     init(id: ID,
          title: String? = nil,
          rank: String? = nil,
-         image: String? = nil) {
+         image: String? = nil,
+         service: String? = nil) {
         self.id = id
         self.title = title
         self.rank = rank

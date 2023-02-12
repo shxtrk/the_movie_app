@@ -8,7 +8,12 @@
 import UIKit
 
 protocol MoviesCoordinatorDependencies {
-    func movieListViewController() -> UIViewController
+    func movieListViewController(with router: MoviesRouter) -> MoviesListViewController
+    func movieDetailsViewController(for movie: Movie) -> MovieDetailsViewController
+}
+
+protocol MoviesRouter {
+    func showMovieDetails(for movie: Movie)
 }
 
 final class MoviesCoordinator {
@@ -23,7 +28,14 @@ final class MoviesCoordinator {
     }
     
     func start() {
-        let viewController = dependencies.movieListViewController()
+        let viewController = dependencies.movieListViewController(with: self)
         navigationController.pushViewController(viewController, animated: false)
+    }
+}
+
+extension MoviesCoordinator: MoviesRouter {
+    func showMovieDetails(for movie: Movie) {
+        let viewController = dependencies.movieDetailsViewController(for: movie)
+        navigationController.pushViewController(viewController, animated: true)
     }
 }

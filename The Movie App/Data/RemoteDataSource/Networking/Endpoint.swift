@@ -19,7 +19,6 @@ enum HTTPMethod: String {
 }
 
 protocol Endpoint {
-    
     associatedtype Response
     
     var method: HTTPMethod { get }

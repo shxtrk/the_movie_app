@@ -11,20 +11,67 @@ final class MoviesListViewController: UIViewController, StoryboardInstantiable {
     
     @IBOutlet private var tableView: UITableView!
     
+    private lazy var searchController = {
+        let searchController = UISearchController(searchResultsController: nil)
+        searchController.delegate = self
+        searchController.searchBar.autocapitalizationType = .none
+        searchController.searchBar.delegate = self
+        return searchController
+    }()
+    
+    private lazy var refreshControl = {
+        let refreshControl = UIRefreshControl()
+        refreshControl.attributedTitle = NSAttributedString(string: NSLocalizedString("top10",
+                                                                                      comment: ""))
+        return refreshControl
+    }()
+    
     private var viewModel: MovieListViewModel!
+    private var imagesProvider: ImagesProvider!
     
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        configureUI()
         bind(viewModel: viewModel)
         viewModel.viewDidLoad()
     }
     
+    private func configureUI() {
+        tableView.estimatedRowHeight = MovieListCell.height
+        tableView.rowHeight = UITableView.automaticDimension
+        
+        refreshControl.addTarget(self, action: #selector(refresh), for: .valueChanged)
+        tableView.addSubview(refreshControl)
+        
+        definesPresentationContext = true
+        navigationItem.searchController = searchController
+    }
+    
     private func bind(viewModel: MovieListViewModel) {
+        viewModel.screenTitle.observe(on: self) { [weak self] screenTitle in
+            self?.title = screenTitle
+        }
         viewModel.items.observe(on: self) { [weak self] _ in
             self?.tableView.reloadData()
         }
+        viewModel.loading.observe(on: self) { [weak self] loading in
+            if loading == nil {
+                self?.refreshControl.endRefreshing()
+            }
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        searchController.isActive = false
+    }
+    
+    // MARK: - Actions
+    
+    @objc func refresh(_ sender: Any) {
+        viewModel.refresh()
     }
 }
 
@@ -40,14 +87,35 @@ extension MoviesListViewController: UITableViewDataSource, UITableViewDelegate {
             return UITableViewCell()
         }
         
+        cell.configure(with: MovieListCellItem(movie: viewModel.items.value[indexPath.row]),
+                       imagesProvider: imagesProvider)
+        
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        viewModel.didSelectItem(at: indexPath.row)
+    }
+}
+
+extension MoviesListViewController: UISearchBarDelegate, UISearchControllerDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        guard let searchText = searchBar.text, !searchText.isEmpty else { return }
+        searchController.isActive = false
+        viewModel.search(query: searchText)
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        viewModel.cancelSearch()
     }
 }
 
 extension MoviesListViewController {
-    static func create(with viewModel: MovieListViewModel) -> Self {
+    static func create(with viewModel: MovieListViewModel, imagesProvider: ImagesProvider) -> Self {
         let viewController = Self.instantiateViewController()
         viewController.viewModel = viewModel
+        viewController.imagesProvider = imagesProvider
         return viewController
     }
 }

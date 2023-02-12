@@ -12,6 +12,5 @@ protocol MoviesProvider {
                    completion: @escaping (Result<([Movie]), Error>) -> Void) -> Cancellable?
     
     func searchMovies(query: String,
-                      stored: @escaping ([Movie]) -> Void,
                       completion: @escaping (Result<([Movie]), Error>) -> Void) -> Cancellable?
 }

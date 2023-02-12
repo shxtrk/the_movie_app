@@ -10,9 +10,12 @@ import Foundation
 final class MoviesRepository {
 
     private let remoteDataSource: RemoteDataSource
+    private let localDataSource: MoviesLocalDataSource
     
-    init(remoteDataSource: RemoteDataSource) {
+    init(remoteDataSource: RemoteDataSource,
+         localDataSource: MoviesLocalDataSource) {
         self.remoteDataSource = remoteDataSource
+        self.localDataSource = localDataSource
     }
 }
 
@@ -20,51 +23,41 @@ extension MoviesRepository: MoviesProvider {
     
     func topMovies(stored: @escaping ([Movie]) -> Void,
                    completion: @escaping (Result<([Movie]), Error>) -> Void) -> Cancellable? {
-        stored([])
-        
-        return remoteDataSource.request(with: IMDBEndpoints().topMovies) { result in
+        let task = RepositoryTask()
+        localDataSource.fetchMovies { result in
+            if case let .success(movies) = result {
+                stored(movies)
+            }
+            guard !task.isCancelled else { return }
+            let endpoint = IMDBEndpoints.topMovies
+            task.remoteTask = self.remoteDataSource.request(with: endpoint) { result in
+                switch result {
+                case .success(let response):
+                    let movies = Array(response.items.prefix(10))
+                    self.localDataSource.create(movies: movies)
+                    completion(.success(movies))
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+        }
+        return task
+    }
+    
+    func searchMovies(query: String,
+                      completion: @escaping (Result<([Movie]), Error>) -> Void) -> Cancellable? {
+        let task = RepositoryTask()
+        let endpoint = IMDBEndpoints.searchMovies(with: query)
+        task.remoteTask = self.remoteDataSource.request(with: endpoint) { result in
             switch result {
             case .success(let response):
-                // TODO: Save to db
-                completion(.success(response.items))
+                let movies = Array(response.items.prefix(10))
+                self.localDataSource.create(movies: movies)
+                completion(.success(movies))
             case .failure(let error):
                 completion(.failure(error))
             }
         }
+        return task
     }
-    
-    func searchMovies(query: String, stored: @escaping ([Movie]) -> Void,
-                      completion: @escaping (Result<([Movie]), Error>) -> Void) -> Cancellable? {
-        stored([])
-        return nil
-    }
-    
-
-//    public func fetchMoviesList(query: MovieQuery, page: Int,
-//                                cached: @escaping (MoviesPage) -> Void,
-//                                completion: @escaping (Result<MoviesPage, Error>) -> Void) -> Cancellable? {
-//
-//        let requestDTO = MoviesRequestDTO(query: query.query, page: page)
-//        let task = RepositoryTask()
-//
-//        cache.getResponse(for: requestDTO) { result in
-//
-//            if case let .success(responseDTO?) = result {
-//                cached(responseDTO.toDomain())
-//            }
-//            guard !task.isCancelled else { return }
-//
-//            let endpoint = APIEndpoints.getMovies(with: requestDTO)
-//            task.networkTask = self.dataTransferService.request(with: endpoint) { result in
-//                switch result {
-//                case .success(let responseDTO):
-//                    self.cache.save(response: responseDTO, for: requestDTO)
-//                    completion(.success(responseDTO.toDomain()))
-//                case .failure(let error):
-//                    completion(.failure(error))
-//                }
-//            }
-//        }
-//        return task
-//    }
 }

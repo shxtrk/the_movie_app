@@ -7,30 +7,19 @@
 
 import Foundation
 
-public enum DataTransferError: Error {
-    case noResponse
-    case parsing(Error)
-    case networkFailure(NetworkError)
-    case resolvedNetworkFailure(Error)
-}
-
 public enum NetworkError: Error {
     case error(statusCode: Int, data: Data?)
     case notConnected
     case cancelled
+    case noResponse
     case generic(Error)
     case urlGeneration
+    case parsing(Error)
 }
 
 extension URLSessionTask: Cancellable { }
 
-struct NetworkConfiguration {
-    let baseURL: URL
-    let language: String
-    let apiKey: String
-}
-
-final class APINetworking {
+final class Network {
     
     private let configuration: NetworkConfiguration
     private let networkSession: NetworkSession
@@ -43,9 +32,7 @@ final class APINetworking {
     
     private func request(for request: URLRequest,
                          completion: @escaping (Result<Data?, NetworkError>) -> Void) -> Cancellable {
-        
         let sessionDataTask = networkSession.request(request) { data, response, requestError in
-            
             if let requestError = requestError {
                 var error: NetworkError
                 if let response = response as? HTTPURLResponse {
@@ -53,7 +40,6 @@ final class APINetworking {
                 } else {
                     error = self.resolve(error: requestError)
                 }
-                
                 completion(.failure(error))
             } else {
                 completion(.success(data))
@@ -65,38 +51,20 @@ final class APINetworking {
     private func resolve(error: Error) -> NetworkError {
         let code = URLError.Code(rawValue: (error as NSError).code)
         switch code {
-        case .notConnectedToInternet: return .notConnected
-        case .cancelled: return .cancelled
-        default: return .generic(error)
-        }
-    }
-}
-
-extension APINetworking: RemoteDataSource {
-    
-    func request<T: Decodable, E: Endpoint>(with endpoint: E,
-                                            completion: @escaping (Result<T, DataTransferError>) -> Void) -> Cancellable? where E.Response == T {
-
-        guard let urlRequest = try? urlRequest(for: endpoint, with: configuration) else {
-            completion(.failure(.networkFailure(.urlGeneration)))
-            return nil
-        }
-        
-        return self.request(for: urlRequest) { result in
-            switch result {
-            case .success(let data):
-                let result: Result<T, DataTransferError> = self.decode(data: data, decoder: endpoint.responseDecoder)
-                DispatchQueue.main.async { return completion(result) }
-            case .failure(let error):
-                let error = self.resolve(error: error)
-                DispatchQueue.main.async { return completion(.failure(.networkFailure(error))) }
-            }
+        case .notConnectedToInternet:
+            return .notConnected
+        case .cancelled:
+            return .cancelled
+        default:
+            return .generic(error)
         }
     }
     
-    private func decode<T: Decodable>(data: Data?, decoder: ResponseDecoder) -> Result<T, DataTransferError> {
+    private func decode<T: Decodable>(data: Data?, decoder: ResponseDecoder) -> Result<T, NetworkError> {
         do {
-            guard let data = data else { return .failure(.noResponse) }
+            guard let data = data else {
+                return .failure(.noResponse)
+            }
             let result: T = try decoder.decode(data)
             return .success(result)
         } catch {
@@ -110,5 +78,26 @@ extension APINetworking: RemoteDataSource {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = endpoint.method.rawValue
         return urlRequest
+    }
+}
+
+extension Network: RemoteDataSource {
+    func request<T: Decodable, E: Endpoint>(with endpoint: E,
+                                            completion: @escaping (Result<T, NetworkError>) -> Void) -> Cancellable? where E.Response == T {
+        guard let urlRequest = try? urlRequest(for: endpoint, with: configuration) else {
+            completion(.failure(.urlGeneration))
+            return nil
+        }
+        return self.request(for: urlRequest) { result in
+            switch result {
+            case .success(let data):
+                let result: Result<T, NetworkError> = self.decode(data: data,
+                                                                       decoder: endpoint.responseDecoder)
+                DispatchQueue.main.async { return completion(result) }
+            case .failure(let error):
+                let error = self.resolve(error: error)
+                DispatchQueue.main.async { return completion(.failure(error)) }
+            }
+        }
     }
 }

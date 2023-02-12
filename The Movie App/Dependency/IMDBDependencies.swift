@@ -14,7 +14,7 @@ final class IMDBDependencies {
                                                  language: "en",
                                                  apiKey: "k_h1ssw4nx")
         
-        return APINetworking(configuration: configuration,
+        return Network(configuration: configuration,
                              networkSession: SharedNetworkSession())
     }()
 }
