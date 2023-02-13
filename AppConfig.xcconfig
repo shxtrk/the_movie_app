@@ -1,0 +1,12 @@
+//
+//  AppConfig.xcconfig
+//  The Movie App
+//
+//  Created by Serhii Striuk on 13.02.2023.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+
+API_URL = https:/$()/imdb-api.com/
+API_KEY = k_3tp926y0
