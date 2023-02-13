@@ -7,9 +7,7 @@
 
 import UIKit
 
-final class MoviesListViewController: UIViewController, StoryboardInstantiable, ErrorPresentable {
-    
-    @IBOutlet private var tableView: UITableView!
+final class MoviesListViewController: UITableViewController, StoryboardInstantiable, ErrorPresentable {
     
     private lazy var searchController = {
         let searchController = UISearchController(searchResultsController: nil)
@@ -17,13 +15,6 @@ final class MoviesListViewController: UIViewController, StoryboardInstantiable, 
         searchController.searchBar.autocapitalizationType = .none
         searchController.searchBar.delegate = self
         return searchController
-    }()
-    
-    private lazy var refreshControl = {
-        let refreshControl = UIRefreshControl()
-        refreshControl.attributedTitle = NSAttributedString(string: NSLocalizedString("top10",
-                                                                                      comment: ""))
-        return refreshControl
     }()
     
     private var viewModel: MovieListViewModel!
@@ -42,8 +33,10 @@ final class MoviesListViewController: UIViewController, StoryboardInstantiable, 
         tableView.estimatedRowHeight = MovieListCell.height
         tableView.rowHeight = UITableView.automaticDimension
         
-        refreshControl.addTarget(self, action: #selector(refresh), for: .valueChanged)
-        tableView.addSubview(refreshControl)
+        refreshControl = UIRefreshControl()
+        refreshControl?.attributedTitle = NSAttributedString(string: NSLocalizedString("top10",
+                                                                                      comment: ""))
+        refreshControl?.addTarget(self, action: #selector(refresh), for: .valueChanged)
         
         definesPresentationContext = true
         navigationItem.searchController = searchController
@@ -59,7 +52,7 @@ final class MoviesListViewController: UIViewController, StoryboardInstantiable, 
         viewModel.loading.observe(on: self) { [weak self] loading in
             ViewControllerLoaderView.hide()
             guard let loading = loading else {
-                self?.refreshControl.endRefreshing()
+                self?.refreshControl?.endRefreshing()
                 return
             }
             switch loading {
@@ -70,7 +63,7 @@ final class MoviesListViewController: UIViewController, StoryboardInstantiable, 
         viewModel.error.observe(on: self) { [weak self] in
             self?.present(error: $0) {
                 ViewControllerLoaderView.hide()
-                self?.refreshControl.endRefreshing()
+                self?.refreshControl?.endRefreshing()
                 self?.tableView.reloadData()
             }
         }
@@ -86,14 +79,14 @@ final class MoviesListViewController: UIViewController, StoryboardInstantiable, 
     @objc func refresh(_ sender: Any) {
         viewModel.refresh()
     }
-}
-
-extension MoviesListViewController: UITableViewDataSource, UITableViewDelegate {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    
+    // MARK: - UITableViewDataSource, UITableViewDelegate
+    
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return viewModel.items.value.count
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: MovieListCell.reuseIdentifier,
                                                        for: indexPath) as? MovieListCell else {
             assertionFailure("Cannot dequeue reusable cell \(MovieListCell.self) with reuseIdentifier: \(MovieListCell.reuseIdentifier)")
@@ -106,8 +99,7 @@ extension MoviesListViewController: UITableViewDataSource, UITableViewDelegate {
         return cell
     }
     
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         viewModel.didSelectItem(at: indexPath.row)
     }
 }
