@@ -7,7 +7,7 @@
 
 import UIKit
 
-final class MoviesListViewController: UIViewController, StoryboardInstantiable {
+final class MoviesListViewController: UIViewController, StoryboardInstantiable, ErrorPresentable {
     
     @IBOutlet private var tableView: UITableView!
     
@@ -57,8 +57,21 @@ final class MoviesListViewController: UIViewController, StoryboardInstantiable {
             self?.tableView.reloadData()
         }
         viewModel.loading.observe(on: self) { [weak self] loading in
-            if loading == nil {
+            ViewControllerLoaderView.hide()
+            guard let loading = loading else {
                 self?.refreshControl.endRefreshing()
+                return
+            }
+            switch loading {
+            case .top: ()
+            case .search: ViewControllerLoaderView.show()
+            }
+        }
+        viewModel.error.observe(on: self) { [weak self] in
+            self?.present(error: $0) {
+                ViewControllerLoaderView.hide()
+                self?.refreshControl.endRefreshing()
+                self?.tableView.reloadData()
             }
         }
     }

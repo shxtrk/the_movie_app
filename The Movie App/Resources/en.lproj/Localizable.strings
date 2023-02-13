@@ -7,5 +7,7 @@
 */
 
 "app_title" = "The Movie App";
-"top10" = "Top 250 Movies";
+"top10" = "Top 10 Movies";
+"rank" = "Rank";
 "character_occurrence" = "Сharacter %@ occurs %@ times";
+"error" = "Error";

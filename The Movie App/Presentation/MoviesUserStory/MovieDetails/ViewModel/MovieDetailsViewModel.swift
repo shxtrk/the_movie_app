@@ -40,9 +40,7 @@ final class IMDBMovieDetailsViewModel: MovieDetailsViewModel {
         DispatchQueue.main.async { [weak self] in
             guard let title = self?.movie.title?.lowercased() else { return }
             var dict = [Character: Int]()
-            for char in title {
-                dict[char, default: 0] += 1
-            }
+            title.forEach { dict[$0, default: 0] += 1 }
             self?.items.value = dict.sorted(by: { $0.value > $1.value } ).map { ($0.key, $0.value) }
         }
     }

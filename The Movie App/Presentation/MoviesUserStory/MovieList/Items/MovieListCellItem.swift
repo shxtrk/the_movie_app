@@ -14,7 +14,7 @@ struct MovieListCellItem: Equatable {
     
     init(movie: Movie) {
         self.title = movie.title ?? ""
-        self.rank = "Rank: " + (movie.rank ?? "-")
+        self.rank = NSLocalizedString("rank", comment: "") + ": " + (movie.rank ?? "-")
         self.image = movie.image
     }
 }

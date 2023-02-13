@@ -8,11 +8,13 @@
 import UIKit
 
 final class IMDBDependencies {
+    
+    lazy var appConfig = AppConfig()
+    
     lazy var remoteDataSource: RemoteDataSource = {
-        // TODO: Move to config file
-        let configuration = NetworkConfiguration(baseURL: URL(string: "https://imdb-api.com/")!,
+        let configuration = NetworkConfiguration(baseURL: URL(string: appConfig.apiURL)!,
                                                  language: "en",
-                                                 apiKey: "k_h1ssw4nx")
+                                                 apiKey: appConfig.apiKey)
         
         return Network(configuration: configuration,
                              networkSession: SharedNetworkSession())

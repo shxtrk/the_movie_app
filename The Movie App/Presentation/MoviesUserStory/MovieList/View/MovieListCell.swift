@@ -41,7 +41,10 @@ final class MovieListCell: UITableViewCell {
             guard let self = self else { return }
             guard self.item.image == imagePath else { return }
             if case let .success(data) = result {
-                self.posterImageView.image = UIImage(data: data)
+                if let image = UIImage(data: data) {
+                    let smaillImage = image.resizedImage(targetSize: self.posterImageView.bounds.size)
+                    self.posterImageView.image = smaillImage
+                } else { self.posterImageView.image = nil }
             }
             self.loadTask = nil
         }

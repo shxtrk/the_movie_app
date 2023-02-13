@@ -19,6 +19,7 @@ protocol MovieListViewModelOutput {
     var screenTitle: Observable<String> { get }
     var items: Observable<[Movie]> { get }
     var loading: Observable<MoviesLoader?> { get }
+    var error: Observable<String> { get }
 }
 
 enum MoviesLoader {
@@ -62,10 +63,14 @@ final class IMDBMovieListViewModel: MovieListViewModel {
             switch result {
             case .success(let movies):
                 self.update(movies: movies)
-            case .failure(_):
-                () // TODO: Handle error
+            case .failure(let error):
+                self.process(error: error)
             }
         }
+    }
+    
+    private func process(error: Error) {
+        self.error.value = error.localizedDescription
     }
     
     // MARK: - Output
@@ -73,6 +78,7 @@ final class IMDBMovieListViewModel: MovieListViewModel {
     let screenTitle: Observable<String> = Observable(NSLocalizedString("top10", comment: ""))
     let items: Observable<[Movie]> = Observable([])
     let loading: Observable<MoviesLoader?> = Observable(nil)
+    let error: Observable<String> = Observable("")
     
     // MARK: - Input
     
@@ -92,8 +98,8 @@ final class IMDBMovieListViewModel: MovieListViewModel {
             switch result {
             case .success(let movies):
                 self.update(movies: movies)
-            case .failure(_):
-                () // TODO: Handle error
+            case .failure(let error):
+                self.process(error: error)
             }
         }
     }
