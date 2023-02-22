@@ -13,7 +13,7 @@ final class IMDBDependencies {
     
     lazy var remoteDataSource: RemoteDataSource = {
         let configuration = NetworkConfiguration(baseURL: URL(string: appConfig.apiURL)!,
-                                                 language: "en",
+                                                 language: NSLocale.preferredLanguages.first ?? "en",
                                                  apiKey: appConfig.apiKey)
         
         return Network(configuration: configuration,

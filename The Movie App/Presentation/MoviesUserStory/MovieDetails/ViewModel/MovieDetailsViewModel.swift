@@ -21,12 +21,15 @@ typealias MovieDetailsViewModel = MovieDetailsViewModelInput & MovieDetailsViewM
 final class IMDBMovieDetailsViewModel: MovieDetailsViewModel {
     
     private let movie: Movie
+    private let operationQueue: OperationQueue
     
     // MARK: - Init
     
     init(movie: Movie) {
         self.movie = movie
         self.screenTitle = movie.title ?? ""
+        self.operationQueue = OperationQueue()
+        self.operationQueue.maxConcurrentOperationCount = 1
     }
     
     // MARK: - Output
@@ -37,11 +40,15 @@ final class IMDBMovieDetailsViewModel: MovieDetailsViewModel {
     // MARK: - Input
     
     func viewDidLoad() {
-        DispatchQueue.main.async { [weak self] in
+        let operation = BlockOperation { [weak self] in
             guard let title = self?.movie.title?.lowercased() else { return }
             var dict = [Character: Int]()
             title.forEach { dict[$0, default: 0] += 1 }
-            self?.items.value = dict.sorted(by: { $0.value > $1.value } ).map { ($0.key, $0.value) }
+            let sortedItems = dict.sorted(by: { $0.value > $1.value }).map { ($0.key, $0.value) }
+            OperationQueue.main.addOperation {
+                self?.items.value = sortedItems
+            }
         }
+        operationQueue.addOperation(operation)
     }
 }

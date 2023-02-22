@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class Observable<Value> {
+final class Observable<Value> {
     
     struct Observer<Value> {
         weak var observer: AnyObject?
@@ -16,26 +16,34 @@ public final class Observable<Value> {
     
     private var observers = [Observer<Value>]()
     
-    public var value: Value {
+    private let queue = DispatchQueue(label: "com.observable.queue")
+    
+    var value: Value {
         didSet { notifyObservers() }
     }
     
-    public init(_ value: Value) {
+    init(_ value: Value) {
         self.value = value
     }
     
-    public func observe(on observer: AnyObject, observerBlock: @escaping (Value) -> Void) {
-        observers.append(Observer(observer: observer, block: observerBlock))
-        observerBlock(self.value)
+    func observe(on observer: AnyObject, observerBlock: @escaping (Value) -> Void) {
+        queue.async {
+            self.observers.append(Observer(observer: observer, block: observerBlock))
+            DispatchQueue.main.async { observerBlock(self.value) }
+        }
     }
     
-    public func remove(observer: AnyObject) {
-        observers = observers.filter { $0.observer !== observer }
+    func remove(observer: AnyObject) {
+        queue.async {
+            self.observers = self.observers.filter { $0.observer !== observer }
+        }
     }
     
     private func notifyObservers() {
-        for observer in observers {
-            DispatchQueue.main.async { observer.block(self.value) }
+        queue.async {
+            for observer in self.observers {
+                DispatchQueue.main.async { observer.block(self.value) }
+            }
         }
     }
 }
